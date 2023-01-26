@@ -25,7 +25,7 @@ Zookeeper에 ISR 업데이트, Controller가 Zookeeper로부터 수신
 ![](./images/17.PNG)
 
 ## Broker Failure
-Broker 4대, Partition 4, Replication Facto가 3일 경우를 가정
+Broker 4대, Partition 4, Replication Factor가 3일 경우를 가정
 - Partition 생성시 Broker들 사이에서 Partition들이 분산되어 배치됨
 
 ![](./images/18.PNG)
