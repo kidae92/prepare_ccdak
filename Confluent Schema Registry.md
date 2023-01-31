@@ -8,9 +8,9 @@
 ## Schema Evolution
 - 비즈니스가 변경되거나 더 많은 애플리케이션이 동일한 데이터를 활용하기를 원함에 따라 기존 데이터 구조가 진화할 필요성 발생
 
-Backward Compatibility: 새로운 스키마를 사용하여 이전 데이터를 읽는 것이 가능한 것을 의미
-Forward Compatibility: 이전 스키마를 사용하여 새로운 데이터를 읽는 것이 가능한 것을 의미
-Full Compatibility: 양쪽이 다 가능
+- Backward Compatibility: 새로운 스키마를 사용하여 이전 데이터를 읽는 것이 가능한 것을 의미
+- Forward Compatibility: 이전 스키마를 사용하여 새로운 데이터를 읽는 것이 가능한 것을 의미
+- Full Compatibility: 양쪽이 다 가능
 
 ![](./images/62.PNG)
 
