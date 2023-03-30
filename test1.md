@@ -3,21 +3,14 @@
 - KSQL은 ANSI SQL을 준수하지 않음
 
 ## KStream
-- KStream-KTable join의 결과는 KStream
-- KStream에서 exactly_once가 보장되는 데이터 흐름은 kafka to kafka
-- KStream에서 application.id는 consumer의 기본 group.id이기도 하며 모든 내부 topic의 접두사임
+-  KStream-KTable join의 결과는 KStream
+-  KStream에서 exactly_once가 보장되는 데이터 흐름은 kafka to kafka 
 
 ## Consumer
 - Consumer Group에서 Consumer 갯수는 Partition 갯수에 따라 결정(1:1이 베스트)
 - RoundRobinAssignor - Consumer1,2 / Partition3 / Topic1,2 --> C1은 t1의 p0,p2와 t2의 p1을 할당 받고, C2는 t1의 p1과 t2의 p0,p2를 할당받음
 - at-most once에서는 데이터 처리 전에 offset을 commit하는 것을 추천
 - 특정 topic에 대해 메시지를 이미 읽었다면 offsets이 committed되어서 auto.offset.reset 옵션은 무시됨
-- assign()은 특정 partition을 consumer에게 수동으로 할당 / subscribe()는 topic 이름을 지정하여 partition을 자동으로 할당(동시에 호출할 수 없음, 동일한 consumer에서 불가)
-- real-time processing에서는 records-lag-max가 가장 중요함
-- kafka-console-consumer CLI를 사용할 때 기본 옵션은 랜덤으로 group id를 사용
-- consumer-group에서 repartition이 일어나는 경우 - consumer group에서 하나의 consumer 종료, consumer group에 새로운 consumer 추가, topic의 partition 증가
-- producer가 acks=1 옵션을 사용하여 topic partition의 리더 broker에게 메시지를 전송함. 이 경우 팔로우 broker에 복제되지 않았음. 이 상황에서 어떤 조건으로 consumer는 메시지를 읽을 수 있을까? --> Consumer는 High Watermark의 값까지만 읽을 수 있음(acks=1의 경우, 최고 오프셋보다 작을 수 있음) 만약 conusmer가 High Watermark 이후의 오프셋까지 데이터를 읽으려고 하면, 해당 데이터가 복제되지 않았을 수도 있기 때문에 데이터 무결성에 문제가 발생할 수 있음
-- consumer가 data를 polling하는 것을 멈추고 shutdown 시키고 싶으면 consumer.wakeUp()을 호출하고 catch a WakeUpException 하면 됨
 
 ## Producer
 - max.in.flight.requests.per.connection을 증가시키면 메시지의 순서가 보장되지 않음
@@ -25,7 +18,6 @@
 - producer가 key가 없는 로그 메시지를 전송하는 경우 bootstrap.server, acks, key.serializer, value.serializer를 필수적으로 구성해야함
 - 재시도 가능한 오류: not_enough_replicas, not_leader_for_partition
 - producer의 batching chance를 증가시키려면 batch.size가 아닌 linger.ms가 중요함
-- 클라이언트가 broker에 연결되면 전체 클러스터에 연결되고 leader가 변경되는 경우 클라이언트는 사용 가능한 브로커에 대한 메타데이터 요청을 자동으로 수행하여 topic에 대한 새로운 리더를 찾음. 따라서 파티션 리더 broker가 다운 되더라도
 
 ## Stateless & Stateful
 - stateful: Aggregate, Count, Reduce, Joining
@@ -35,13 +27,10 @@
 ## Connector
 - max.tasks parameter보다 테이블이 적으면 테이블 갯수만큼 task가 진행됨
 - import data from external databases --> source connector / export data from Kafka to external databases --> sink connector
-- Consumer는 __consumer_offsets topic에 직접 쓰지 않고 Group Coordinator Broker와 해당 topic을 관리하도록 선택된 브로커와 상호 작용함
 
 ## Schema Registry
 - Schema Registry는 호환되지 않는 스키마 변경에 대한 보호 장치
 - 클라이언트는 HTTPS, HTTP 인터페이스를 통해서 Schema Registry와 상호작용
-- Schema Registry는 Avro 스키마를 저장하고 검색하기 위한 RESTful 인터페이스를 제공하는 별도의 애플리케이션
-- Kafka Distribution을 사용할 때 Schema Registry는 별도의 JVM 구성 요소로서 존재함
 
 ## Broker
 - leader와 replicas에 대해 데이터를 확실하게 전달하기 위해서는 asks=all, replication factor=3, min.insync.replicas=2가 좋음(min.insync.replicas는 topic에 대한 설정)
@@ -51,7 +40,7 @@
 - kafka는 zero-copy를 통해 페이지 캐시에서 직접 데이터 전송, 메시지 변환 x 통해서 producer, consumer 사이에서 뛰어난 성능을 보임
 
 ## Partition
-
+- assign()은 특정 partition을 consumer에게 수동으로 할당 / subscribe()는 topic 이름을 지정하여 partition을 자동으로 할당
 
 ## Rest proxy
 - producer에서 base64로 인코딩해서 특정 topic으로 데이터를 보내더라도, Rest proxy는 바이드로 변환한 다음 바이트 페이로드를 kafka로 보냄. 따라서 conumser는 binary 데이터를 받게 됨
@@ -69,6 +58,4 @@
     - Full: 둘다 지원
 - Unclean.leader.election.enable을 true로 하면 동기화되지 않은 복제본이 리더가 될 수 있음. 메시지가 손실되는 경우가 발생 가능
 - key 사용: 동일한 키를 공유하는 메시지에 대해 강력한 순서나 그룹화가 필요한 경우 키가 필요. 동일한 키를 가진 메시지를 항상 올바른 순서로 표시해야 하는 경우 메시지에 키를 첨부하면 동일한 키를 가진 메시지가 항상  topic의 동일한 파티션으로 이동. kafka는 파티션 내의 순서를 보장하지만 topic의 파티션 간에는 순서를 보장하지 않으므로 키를 제공하지 않으면 파티션간 라운드 로빈 배포가 발생하므로 순서가 유지되지 않음
-- log.retention.hours는 작은 것 기준으로 적용
-- 특정 topic에 key K와 value null인 메시지를 보내면 broker는 정리시에 K key가 있는 모든 메시지를 삭제함
-- schema가 없는 일반 텍스트의 경우 converter의 key.converter.schemas.enable 및 value.converter.schemas.enable을 false로 설정
+- unclean.leader.election.enable
