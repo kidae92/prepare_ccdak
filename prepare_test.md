@@ -1,11 +1,14 @@
 ## KSQL
 - KSQL에서 특정 토픽을 메시지를 모두 읽고자 할 때: KSQL CLI에서 auto.offset.reset을 earliest로 설정을 한다.
 - KSQL은 ANSI SQL을 준수하지 않음
+- KSQL은 KStream 기반인 Java 라이브러리
+- GlobalKTable: 모든 스트림 애플리케이션에서 공유할 수 있는 KTable. 즉, 클러스터 내 모든 애플리케이션 인스턴스에서 동일한 데이터를 사용할 수 있음. 일반적으로 KTable은 파티션 단위로 처리되므로, 각각의 파티션마다 서로 다른 값이 저장됨. GlobalKTable은 모든 파티션에서 동일한 값을 가지며 스트리밍 애플리케이션에서 참조할 수 있는 공유 상태 데이터를 유지하고자 할 때 유용
 
 ## KStream
 - KStream-KTable join의 결과는 KStream
 - KStream에서 exactly_once가 보장되는 데이터 흐름은 kafka to kafka
 - KStream에서 application.id는 consumer의 기본 group.id이기도 하며 모든 내부 topic의 접두사임
+- KStreams는 스트리밍 애플리케이션, 특히 input kafka topic과 output kafka topic 간의 변환하는 애플리케이션을 구축하기 위한 라이브러리
 
 ## Consumer
 - Consumer Group에서 Consumer 갯수는 Partition 갯수에 따라 결정(1:1이 베스트)
@@ -18,6 +21,8 @@
 - consumer-group에서 repartition이 일어나는 경우 - consumer group에서 하나의 consumer 종료, consumer group에 새로운 consumer 추가, topic의 partition 증가
 - producer가 acks=1 옵션을 사용하여 topic partition의 리더 broker에게 메시지를 전송함. 이 경우 팔로우 broker에 복제되지 않았음. 이 상황에서 어떤 조건으로 consumer는 메시지를 읽을 수 있을까? --> Consumer는 High Watermark의 값까지만 읽을 수 있음(acks=1의 경우, 최고 오프셋보다 작을 수 있음) 만약 conusmer가 High Watermark 이후의 오프셋까지 데이터를 읽으려고 하면, 해당 데이터가 복제되지 않았을 수도 있기 때문에 데이터 무결성에 문제가 발생할 수 있음
 - consumer가 data를 polling하는 것을 멈추고 shutdown 시키고 싶으면 consumer.wakeUp()을 호출하고 catch a WakeUpException 하면 됨
+- record batch를 처리하는데 약 6분이 걸리지만 consumer 실행 중 rebalance가 일어남 해결방법은? --> .poll() method를 호출하지 않은 경우에 consumer가 죽을 것으로 간주됨. max.poll.interval.ms(기본값300000)를 늘리면 해결 가능 (max.poll.interval.ms은 poll() 메소드 호출 사이의 최대 대기 시간을 지정)
+
 
 ## Producer
 - max.in.flight.requests.per.connection을 증가시키면 메시지의 순서가 보장되지 않음
@@ -45,13 +50,11 @@
 
 ## Broker
 - leader와 replicas에 대해 데이터를 확실하게 전달하기 위해서는 asks=all, replication factor=3, min.insync.replicas=2가 좋음(min.insync.replicas는 topic에 대한 설정)
-
 - replicas 3인 클러스터에서 하나의 브로커를 종료시키고 재시작하면 모든 데이터가 다른 리더 브로커에서 복제될 때까지 온라인 상태가 되지 않음
-
 - kafka는 zero-copy를 통해 페이지 캐시에서 직접 데이터 전송, 메시지 변환 x 통해서 producer, consumer 사이에서 뛰어난 성능을 보임
 
 ## Partition
-
+- 파티션 수를 늘리면 새 메시지 키가 다르게 해시됨. 동일한 키가 동일한 파티션으로 이동한다는 보장이 사라짐.
 
 ## Rest proxy
 - producer에서 base64로 인코딩해서 특정 topic으로 데이터를 보내더라도, Rest proxy는 바이드로 변환한 다음 바이트 페이로드를 kafka로 보냄. 따라서 conumser는 binary 데이터를 받게 됨
@@ -72,3 +75,8 @@
 - log.retention.hours는 작은 것 기준으로 적용
 - 특정 topic에 key K와 value null인 메시지를 보내면 broker는 정리시에 K key가 있는 모든 메시지를 삭제함
 - schema가 없는 일반 텍스트의 경우 converter의 key.converter.schemas.enable 및 value.converter.schemas.enable을 false로 설정
+- log.cleanup.policy=compact 를 하면 cleanup후 키당 하나의 메시지만 최신 값으로 유지. 압축된 모든 로그 오프셋은 consumer가 다음으로 가장 높은 오프셋을 가지므로 오프셋의 레코드가 압축된 경우에도 유효
+- auto.create.topics.enable이 true로 설명되어 있으면 다음 요청에 자동으로 topic을 생성함
+    - 클라이언트가 topic에 대한 메테데이터를 요청
+    - consumer가 topic에서 메시지를 읽음
+    - producer가 topic에 메시지를 보냄
